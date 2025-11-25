@@ -1,76 +1,51 @@
-package ca.sfu.cmpt276.fall2025.team14;
+package ca.sfu.cmpt276.fall2025.team14.screens;
 
+import ca.sfu.cmpt276.fall2025.team14.app.GameLogic;
 import de.gurkenlabs.litiengine.Game;
 import de.gurkenlabs.litiengine.gui.GuiComponent;
+import de.gurkenlabs.litiengine.graphics.TextRenderer;
+import de.gurkenlabs.litiengine.resources.Resources;
+import de.gurkenlabs.litiengine.util.Imaging;
 
 import java.awt.*;
+import java.awt.image.BufferedImage;
 
-/**
- * Lightweight HUD overlay for score, timer, and health.
- * This component is purely visual; it queries the Game/Player state each frame.
- *
- * Expected data sources (per UML):
- * - Score & timer from the Game model
- * - Health from Player
- *
- * Attach this to your InGameScreen or render it in that screen's render pass.
- */
-public class GameHud extends GuiComponent {
+public class GameHUD extends GuiComponent {
 
-  private final GameModelFacade model;
+    private static final float BASE_FONT_PT = 48f;
+    private static final int DESIGN_W = 1920;
+    private static final int DESIGN_H = 1080;
+    private static final int HUD_W0   = 672;   // 96
+    private static final int HUD_H0   = 98;   //14
 
-  /**
-   * @param model A thin facade that exposes score, elapsed time, and player health.
-   *              Keeps HUD decoupled from the full game logic.
-   */
-  public GameHud(GameModelFacade model) {
-    super(0, 0, Game.window().getResolution().width, 60);
-    this.model = model;
-  }
+    public GameHUD() {
+        super(0, 0);
+    }
 
-  @Override
-  public void render(Graphics2D g) {
-    // translucent bar
-    g.setComposite(AlphaComposite.SrcOver.derive(0.85f));
-    g.setColor(new Color(15, 15, 25));
-    g.fillRect(0, 0, (int) this.getWidth(), (int) this.getHeight());
-    g.setComposite(AlphaComposite.SrcOver);
-
-    g.setColor(Color.WHITE);
-    g.setFont(g.getFont().deriveFont(Font.BOLD, 18f));
-
-    String score = "Score: " + model.getScore();
-    String time  = "Time: " + formatSeconds(model.getRemainingSeconds());
-    String hp    = "Health: " + model.getHealth();
-
-    int pad = 16;
-    g.drawString(score, pad, 36);
-
-    // center time
-    int w = (int) this.getWidth();
-    int tw = g.getFontMetrics().stringWidth(time);
-    g.drawString(time, (w - tw) / 2, 36);
-
-    // right health
-    int hw = g.getFontMetrics().stringWidth(hp);
-    g.drawString(hp, w - hw - pad, 36);
-  }
-
-  private static String formatSeconds(long secs) {
-    if (secs < 0) secs = 0;
-    long m = secs / 60;
-    long s = secs % 60;
-    return String.format("%d:%02d", m, s);
-  }
-
-  /**
-   * Small interface to the model layer so the HUD doesn't depend on concrete classes.
-   * Implement this in your existing Game / InGameScreen code.
-   */
-  public interface GameModelFacade {
-    int getScore();
-    long getRemainingSeconds();
-    int getHealth();
-  }
+    @Override
+    public void render(Graphics2D g) {
+        super.render(g);
+        // for text smoothing
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        // Set width and height based on current window size
+        int width = (int) Game.window().getResolution().getWidth();
+        int height = (int) Game.window().getResolution().getHeight();
+        int scaledW = (int) ((long) HUD_W0 * width / DESIGN_W);
+        int scaledH = (int) ((long) HUD_H0 * height / DESIGN_H);
+        // Set scaling font
+        double s = Math.min(width / (double) DESIGN_W, height / (double) DESIGN_H);
+        float pt = Math.max(8f, (float) (BASE_FONT_PT * s)); // clamp small
+        g.setColor(Color.WHITE);
+        setFont(Resources.fonts().get("fonts/monogram-extended-italic.ttf").deriveFont(pt));
+        // Set hud background
+        BufferedImage hudBg = Resources.spritesheets().get("hud").getImage();
+        hudBg = Imaging.scale(hudBg, scaledW, scaledH);
+        g.drawImage(hudBg, (int) (width - (hudBg.getWidth() * 0.75)), 0, scaledW, scaledH, null);
+        // HUD displays remaining time and crystals
+        String timeText = "Time: " + GameLogic.getRemainingTime() + "s";
+        String crystalText = "Crystals: " + GameLogic.getRemainingCrystals();
+        // Place within HUD based on HUD size
+        TextRenderer.render(g, timeText, (int) (width - (hudBg.getWidth() * 0.65)), (double) hudBg.getHeight() / 2);
+        TextRenderer.render(g, crystalText, (int) (width - (hudBg.getWidth() * 0.33)), (double) hudBg.getHeight() / 2);
+    }
 }
-
