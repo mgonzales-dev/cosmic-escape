@@ -43,3 +43,13 @@ buildNumber.properties
 *.rar
 
 crash.txt
+
+# Third-party assets (not licensed for redistribution; not included in this repo)
+src/main/resources/sprites/
+src/main/resources/audio/
+src/main/resources/music/
+src/main/resources/fonts/
+src/main/resources/*.litidata
+
+# Generated Javadocs
+docs/
